@@ -17,13 +17,13 @@ terraform-init:
 terraform-plan:
 	@echo "terraform-plan"
 	cd terraform && \
-	terraform plan && \
+	terraform plan -out=environment.tfplan && \
 	cd ~
 
 terraform-apply:
 	@echo "terraform-apply"
 	cd terraform && \
-	terraform apply -auto-approve && \
+	terraform apply -auto-approve environment.tfplan && \
 	cd ~
 
 terraform-destroy:

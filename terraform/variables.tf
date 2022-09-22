@@ -10,6 +10,12 @@ variable "awsprops" {
   }
 }
 
+variable "ssh_key_file" {
+  type = string
+  description = "Public key file for ssh connection."
+  default = "../config/sshkey.pub"
+}
+
 variable "user-data-script" {
   type = string
   description = "User script to be executed in the new instance."

@@ -28,7 +28,7 @@ resource "aws_instance" "instance" {
 
 resource "aws_key_pair" "key_pair" {
   key_name = lookup(var.awsprops, "keyname")
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCsXJCvGb56Kev66oPvDFgpKWsoar7ZQpceUpxTVPC3c3G1BxMSNk98j6FASDoXS6eqfhGoyLNdtWySXqbMVyLga8GhWm9cdNpz8PwDS4IBS2c2SG97oHjI/hlvMHt6sW6zD/Pe+RQe+BEop+4lTEf1UcK6W1ISQYmDAfEy+cMRgaybAN5OFtA4eDcrFAxsuqryTf8ak0cQZsYjSuVOSmifbmkRUeQrTSNPscOzNd6+uG7DZEP7F7BmPzhgcLQtgz3N+cnQRIiLBeVwbycrQj/foazBwiVvi9BPmnXVAPj+BATu7nnCCEQ6ts8fMPcEqJmmjnDjTgpn0GZlFZyBD0DM4NHNLiwjN1KVBYZPKVm6lS+fYNAi005PhVzLemM5sslGktigJw2LKRpAVKx/HEFaYhsvzNheN/OBJzN3/rprZn7rmRRRDrpfhfvmdc+imx7bQaOnrFMTlrvCDRL5dCuSZn7tFHE+hXxivAY7QdvWqInOJJVFDfxE04bRRJCoJ3c= arunalex@arunalex-mac"
+  public_key = file(var.ssh_key_file)
 }
 
 resource "aws_vpc" "vpc" {
