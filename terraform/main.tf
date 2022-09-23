@@ -71,33 +71,27 @@ resource "aws_security_group" "sg" {
   name   = var.sg-tag-name
   vpc_id = aws_vpc.vpc.id
 
-  ingress {
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    from_port   = "22"
-    to_port     = "22"
+  dynamic "ingress" {
+    for_each = var.ingress_ports
+    iterator = port
+    content {
+      from_port = port.value
+      to_port = port.value
+      protocol = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
-
-  ingress {
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    from_port   = "80"
-    to_port     = "80"
-  }
-
-  ingress {
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    from_port   = "443"
-    to_port     = "443"
-  }
-
-  ingress {
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    from_port   = "8080"
-    to_port     = "8080"
-  }
+  
+  # dynamic "egress" {
+  #   for_each = var.egress_ports
+  #   iterator = port
+  #   content {
+  #     from_port = port.value
+  #     to_port = port.value
+  #     protocol = "tcp"
+  #     cidr_blocks = ["0.0.0.0/0"]
+  #   }
+  # }
 
   egress {
     protocol    = "-1"

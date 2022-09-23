@@ -63,3 +63,15 @@ variable "sg-tag-name" {
   type        = string
   default     = "terraform"
 }
+
+variable "ingress_ports" {
+  type        = list(number)
+  description = "list of ingress ports"
+  default     = [22, 80, 443]
+}
+
+# variable "egress_ports" {
+#   type        = list(string)
+#   description = "list of egress ports"
+#   default     = [0]
+# }
