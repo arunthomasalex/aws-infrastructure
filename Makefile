@@ -5,9 +5,6 @@ edit: terraform-init terraform-plan terraform-apply ansible-exec
 create: terraform-plan terraform-apply ansible-exec 
 clean: terraform-destroy
 
-test:
-	@echo "Print test"
-
 terraform-init:
 	@echo "terraform-init"
 	cd terraform && \
@@ -34,3 +31,4 @@ terraform-destroy:
 
 ansible-exec:
 	@echo "ansible-exec"
+	./ansible/execute.sh
