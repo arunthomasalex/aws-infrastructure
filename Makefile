@@ -1,38 +1,54 @@
 include .env
 export
 
+DELAY_SECONDS=10
+
+RED=\033[0;31m
+ORANGE=\033[0;33m
+GREEN=\033[0;32m
+NOCOLOR=\033[0m
+
 edit: terraform-init terraform wait ansible
+
 terraform: terraform-plan terraform-apply
-ansible: ansible-exec
+
+ansible: ansible-init ansible-exec ansible-finish
+
 clean: terraform-destroy
 
 wait:
-	@echo "Waiting for 10 seconds"
-	sleep 10
+	@echo "${ORANGE}Waiting for ${DELAY_SECONDS} seconds${NOCOLOR}"
+	@sleep $(DELAY_SECONDS)
 
 terraform-init:
-	@echo "terraform-init"
-	cd terraform && \
+	@echo "${ORANGE}terraform-init${NOCOLOR}"
+	@cd terraform && \
 	terraform init -upgrade
 
 terraform-plan:
-	@echo "terraform-plan"
-	cd terraform && \
+	@echo "${ORANGE}terraform-plan${NOCOLOR}"
+	@cd terraform && \
 	terraform plan -out=environment.tfplan
 
 terraform-apply:
-	@echo "terraform-apply"
-	cd terraform && \
+	@echo "${ORANGE}terraform-apply${NOCOLOR}"
+	@cd terraform && \
 	terraform apply -auto-approve environment.tfplan
 
 terraform-destroy:
-	@echo "terraform-destroy"
-	cd terraform && \
+	@echo "${ORANGE}terraform-destroy${NOCOLOR}"
+	@cd terraform && \
 	terraform destroy -auto-approve
 
-ansible-exec:
-	@echo "ansible-exec"
+ansible-init:
+	@echo "${ORANGE}Creating ansible file for environment.${NOCOLOR}"
 	@cp config/ansible.ini ansible/inventory.ini
 	@cd terraform && terraform output --json ec2instance-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/inventory.ini
+
+ansible-exec:
+	@echo "${ORANGE}Executing ansible command.${NOCOLOR}"
 	ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
-	rm -f ansible/inventory.ini
+	
+ansible-finish:
+	@echo "${RED}Deleting ansible file.${NOCOLOR}"
+	@rm -f ansible/inventory.ini
