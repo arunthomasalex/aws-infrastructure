@@ -1,9 +1,9 @@
 include .env
 export
 
-edit: terraform-init terraform-plan terraform-apply ansible-exec
+edit: terraform-init terraform ansible
 terraform: terraform-plan terraform-apply
-ansible: ansible-exec 
+ansible: ansible-exec
 clean: terraform-destroy
 
 terraform-init:
@@ -28,4 +28,7 @@ terraform-destroy:
 
 ansible-exec:
 	@echo "ansible-exec"
-	./ansible/execute.sh
+	@cp config/ansible.ini ansible/inventory.ini
+	@cd terraform && terraform output --json ec2instance-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/inventory.ini
+	ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
+	rm ansible/inventory.ini
