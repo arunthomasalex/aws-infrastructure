@@ -1,10 +1,14 @@
 include .env
 export
 
-edit: terraform-init terraform ansible
+edit: terraform-init terraform wait ansible
 terraform: terraform-plan terraform-apply
 ansible: ansible-exec
 clean: terraform-destroy
+
+wait:
+	@echo "Waiting for 10 seconds"
+	sleep 10
 
 terraform-init:
 	@echo "terraform-init"
@@ -31,4 +35,4 @@ ansible-exec:
 	@cp config/ansible.ini ansible/inventory.ini
 	@cd terraform && terraform output --json ec2instance-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/inventory.ini
 	ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
-	rm ansible/inventory.ini
+	rm -f ansible/inventory.ini
