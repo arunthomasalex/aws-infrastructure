@@ -1,0 +1,11 @@
+upstream cluster {
+{% for id in range(0, count | int) %}
+    server {{ ip }}:500{{ id + 1 }};
+{% endfor %}
+}
+
+server {
+    location / {
+        proxy_pass http://cluster;
+    }
+}

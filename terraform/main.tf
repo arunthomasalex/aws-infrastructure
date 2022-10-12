@@ -3,9 +3,10 @@ provider "aws" {
   # profile="prod" - specify the profile that is mentioned in ~/.aws/credenatials
 }
 
-resource "aws_instance" "instance" {
+resource "aws_instance" "application" {
   ami = lookup(var.awsprops, "ami")
   instance_type = lookup(var.awsprops, "itype")
+  count = 2
   # iam_instance_profile        = "${var.iam-role-name != "" ? var.iam-role-name : ""}"
   user_data = "${var.user-data-script != "" ? file("${var.user-data-script}") : ""}"
   subnet_id = aws_subnet.subnet.id
@@ -81,17 +82,14 @@ resource "aws_security_group" "sg" {
       cidr_blocks = ["0.0.0.0/0"]
     }
   }
-  
-  # dynamic "egress" {
-  #   for_each = var.egress_ports
-  #   iterator = port
-  #   content {
-  #     from_port = port.value
-  #     to_port = port.value
-  #     protocol = "tcp"
-  #     cidr_blocks = ["0.0.0.0/0"]
-  #   }
-  # }
+
+  ingress {
+    protocol    = "tcp"
+    cidr_blocks = ["127.0.0.1/32"]
+    description = "Application ports"
+    from_port   = "5001"
+    to_port     = "5004"
+  }
 
   egress {
     protocol    = "-1"

@@ -2,17 +2,117 @@
 - hosts: aws
   become: true
   become_user: root
+  vars:
+    app_count: 2
+    nginx_container_name: nginx
+    nginx_container_image: nginx
+    app_container_name: webapp
+    app_container_image: training/webapp
   tasks:
-    # - name: Wait 300 seconds, but only start checking after 10 seconds
-    #   wait_for_connection:
-    #     delay: 10
-    #     timeout: 300
+    - name: Wait 300 seconds, start checking after 1 second
+      wait_for_connection:
+        delay: 1
+        timeout: 300
 
     - name: Update apt repo and cache on all Debian/Ubuntu boxes
       apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
 
     - name: Upgrade all packages on servers
       apt: upgrade=dist force_apt_get=yes
+
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+        state: latest
+        update_cache: true
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+
+    - name: Adding 'docker' user
+      user:
+        name: docker
+        comment: docker access only
+        group: docker
+        createhome: yes
+        home: /home/docker
+
+    - name: Adding shared folder for application
+      file:
+        path: /docker/data
+        state: directory
+        recurse: yes
+        owner: docker
+        group: docker
+
+    - name: Adding shared folder for nginx
+      file:
+        path: /docker/nginx
+        state: directory
+        recurse: yes
+        owner: docker
+        group: docker
+
+    - name: Pull nginx docker image
+      docker_image:
+        name: "{{ nginx_container_image }}"
+        source: pull
+
+    - name: Pull app docker image
+      docker_image:
+        name: "{{ app_container_image }}"
+        source: pull
+
+    - name: Create nginx containers
+      docker_container:
+        name: "{{ nginx_container_name }}"
+        image: "{{ nginx_container_image }}"
+        state: started
+        recreate: true
+        ports:
+          - 80:80
+        volumes:
+          - /docker/nginx:/docker/nginx
+
+    - name: Create application containers
+      docker_container:
+        name: "{{ app_container_name }}{{ item }}"
+        image: "{{ app_container_image }}"
+        state: started
+        ports:
+          - 500{{ item }}:5000
+        volumes:
+          - /docker/data:/docker/data
+      with_sequence: count={{ app_count }}
+
+    - name: Copying nginx conf file to servers
+      copy:
+        src: "{{ lookup('dig', ansible_host) }}.conf"
+        dest: /docker/nginx/nginx.conf
 
     - name: Check if a reboot is needed on all servers
       register: reboot_required_file

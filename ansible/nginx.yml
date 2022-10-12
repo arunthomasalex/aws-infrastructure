@@ -1,0 +1,14 @@
+---
+- name: JsonQuery Playbook
+  hosts: localhost
+  vars:
+    hostList: "{{ lookup('file', 'instances.tmp') }}"
+    count: "{{ lookup('file', 'count.tmp') }}"
+  tasks:
+    - name: "Print all ips"
+      template:
+        src: "../config/nginx.conf.j2"
+        dest: "{{ item.public_ip }}.conf"
+      loop: "{{ hostList }}"
+      vars:
+        ip: "{{ item.private_ip }}"

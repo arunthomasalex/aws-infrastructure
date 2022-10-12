@@ -17,7 +17,7 @@ ansible: ansible-init ansible-exec ansible-finish
 clean: terraform-destroy
 
 wait:
-	@echo "${ORANGE}Waiting for ${DELAY_SECONDS} seconds${NOCOLOR}"
+	@echo "${ORANGE}Waiting for ${DELAY_SECONDS} seconds for the machines to start${NOCOLOR}"
 	@sleep $(DELAY_SECONDS)
 
 terraform-init:
@@ -35,6 +35,10 @@ terraform-apply:
 	@cd terraform && \
 	terraform apply -auto-approve environment.tfplan
 
+terraform-output:
+	@cd terraform && \
+	terraform output --json $(output)
+
 terraform-destroy:
 	@echo "${ORANGE}terraform-destroy${NOCOLOR}"
 	@cd terraform && \
@@ -43,12 +47,17 @@ terraform-destroy:
 ansible-init:
 	@echo "${ORANGE}Creating ansible file for environment.${NOCOLOR}"
 	@cp config/ansible.ini ansible/inventory.ini
-	@cd terraform && terraform output --json ec2instance-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/inventory.ini
+	@cd terraform && terraform output --json application-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/inventory.ini
+	@cd terraform && terraform output --json application-details > ../ansible/instances.tmp
+	@cd terraform && terraform output --json application-count > ../ansible/count.tmp
 
 ansible-exec:
 	@echo "${ORANGE}Executing ansible command.${NOCOLOR}"
+	ansible-playbook ansible/nginx.yml
 	ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
 	
 ansible-finish:
 	@echo "${RED}Deleting ansible file.${NOCOLOR}"
-	@rm -f ansible/inventory.ini
+	@rm -f ansible/*.ini
+	@rm -f ansible/*.tmp
+	@rm -f ansible/*.conf

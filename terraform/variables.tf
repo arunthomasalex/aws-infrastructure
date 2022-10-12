@@ -1,6 +1,6 @@
 variable "awsprops" {
-    type = map
-    default = {
+  type = map
+  default = {
     region = "ap-south-1"
     ami = "ami-068257025f72f470d"
     itype = "t2.micro"
