@@ -1,11 +1,13 @@
-upstream cluster {
+upstream appcluster {
 {% for id in range(0, count | int) %}
     server {{ ip }}:500{{ id + 1 }};
 {% endfor %}
 }
 
 server {
+    listen      80 default_server;
+    listen [::]:80 default_server;
     location / {
-        proxy_pass http://cluster;
+        proxy_pass http://appcluster;
     }
 }

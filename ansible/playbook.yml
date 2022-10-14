@@ -3,13 +3,13 @@
   become: true
   become_user: root
   vars:
-    app_count: 2
-    nginx_container_name: nginx
-    nginx_container_image: nginx
+    container_count: 1
+    # nginx_container_name: nginx
+    # nginx_container_image: nginx
     app_container_name: webapp
     app_container_image: training/webapp
   tasks:
-    - name: Wait 300 seconds, start checking after 1 second
+    - name: Wait 300 seconds for server to boot up
       wait_for_connection:
         delay: 1
         timeout: 300
@@ -26,10 +26,12 @@
           - apt-transport-https
           - ca-certificates
           - curl
+          - tree
           - software-properties-common
           - python3-pip
           - virtualenv
           - python3-setuptools
+          - nginx
         state: latest
         update_cache: true
 
@@ -63,56 +65,41 @@
 
     - name: Adding shared folder for application
       file:
-        path: /docker/data
+        path: /docker/shared
         state: directory
         recurse: yes
         owner: docker
         group: docker
 
-    - name: Adding shared folder for nginx
-      file:
-        path: /docker/nginx
-        state: directory
-        recurse: yes
-        owner: docker
-        group: docker
+    # - name: Adding shared folder for nginx
+    #   file:
+    #     path: /docker/nginx
+    #     state: directory
+    #     recurse: yes
+    #     owner: docker
+    #     group: docker
 
-    - name: Pull nginx docker image
-      docker_image:
-        name: "{{ nginx_container_image }}"
-        source: pull
+    # - name: Pull nginx docker image
+    #   docker_image:
+    #     name: "{{ nginx_container_image }}"
+    #     source: pull
+
+    # - name: Create nginx containers
+    #   docker_container:
+    #     name: "{{ nginx_container_name }}"
+    #     image: "{{ nginx_container_image }}"
+    #     state: started
+    #     ports:
+    #       - 80:80
+    #     volumes:
+    #       - /docker/nginx:/docker/nginx
+    #   notify:
+    #     - Copying nginx conf
 
     - name: Pull app docker image
       docker_image:
         name: "{{ app_container_image }}"
         source: pull
-
-    - name: Create nginx containers
-      docker_container:
-        name: "{{ nginx_container_name }}"
-        image: "{{ nginx_container_image }}"
-        state: started
-        recreate: true
-        ports:
-          - 80:80
-        volumes:
-          - /docker/nginx:/docker/nginx
-
-    - name: Create application containers
-      docker_container:
-        name: "{{ app_container_name }}{{ item }}"
-        image: "{{ app_container_image }}"
-        state: started
-        ports:
-          - 500{{ item }}:5000
-        volumes:
-          - /docker/data:/docker/data
-      with_sequence: count={{ app_count }}
-
-    - name: Copying nginx conf file to servers
-      copy:
-        src: "{{ lookup('dig', ansible_host) }}.conf"
-        dest: /docker/nginx/nginx.conf
 
     - name: Check if a reboot is needed on all servers
       register: reboot_required_file
@@ -127,3 +114,28 @@
         post_reboot_delay: 30
         test_command: uptime
       when: reboot_required_file.stat.exists
+
+    - name: Copying nginx conf
+      copy:
+        src: ".tmp/{{ lookup('dig', ansible_host) }}.conf"
+        dest: /etc/nginx/sites-enabled/default
+      notify:
+        - restart nginx
+        - start application containers
+
+  handlers:
+    - name: restart nginx
+      service: 
+        name: nginx
+        state: restarted
+    
+    - name: start application containers
+      docker_container:
+        name: "{{ app_container_name }}{{ item }}"
+        image: "{{ app_container_image }}"
+        state: started  
+        ports:
+          - 500{{ item }}:5000
+        volumes:
+          - /docker/shared:/docker/shared
+      with_sequence: count={{ container_count }} 

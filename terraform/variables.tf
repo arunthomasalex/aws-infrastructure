@@ -10,6 +10,12 @@ variable "awsprops" {
   }
 }
 
+variable "instance_count" {
+  type = number
+  description = "No of instances to be created"
+  default = 1
+}
+
 variable "ssh_key_file" {
   type = string
   description = "Public key file for ssh connection."

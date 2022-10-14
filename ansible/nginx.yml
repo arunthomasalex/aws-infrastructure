@@ -1,14 +1,14 @@
 ---
-- name: JsonQuery Playbook
+- name: Create nginx configuration files for each environments
   hosts: localhost
   vars:
-    hostList: "{{ lookup('file', 'instances.tmp') }}"
-    count: "{{ lookup('file', 'count.tmp') }}"
+    hostList: "{{ lookup('file', '.tmp/instances.tmp') }}"
+    count: "{{ lookup('file', '.tmp/count.tmp') }}"
   tasks:
-    - name: "Print all ips"
+    - name: "Creating configuration for the environment"
       template:
         src: "../config/nginx.conf.j2"
-        dest: "{{ item.public_ip }}.conf"
+        dest: ".tmp/{{ item.public_ip }}.conf"
       loop: "{{ hostList }}"
       vars:
         ip: "{{ item.private_ip }}"

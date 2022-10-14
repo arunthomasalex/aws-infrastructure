@@ -6,7 +6,7 @@ provider "aws" {
 resource "aws_instance" "application" {
   ami = lookup(var.awsprops, "ami")
   instance_type = lookup(var.awsprops, "itype")
-  count = 2
+  count = var.instance_count
   # iam_instance_profile        = "${var.iam-role-name != "" ? var.iam-role-name : ""}"
   user_data = "${var.user-data-script != "" ? file("${var.user-data-script}") : ""}"
   subnet_id = aws_subnet.subnet.id
