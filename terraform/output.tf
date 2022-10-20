@@ -9,3 +9,7 @@ output "application-details" {
 output "application-count" {
   value = length(aws_instance.application)
 }
+
+output "instance-ids" {
+  value = aws_instance.application.*.id
+}

@@ -11,13 +11,15 @@ NOCOLOR=\033[0m
 instances=1
 containers=1 
 
+instance_ids=$(shell cd terraform && terraform output --json instance-ids | sed -r 's/(,|\[|\])/ /g')
+
 edit: terraform-init terraform wait ansible
 
 terraform: terraform-plan terraform-apply
 
-ansible: ansible-init ansible-exec ansible-finish
+ansible: ansible-init ansible-exec ansible-destroy
 
-clean: ansible-finish terraform-destroy
+clean: ansible-destroy terraform-destroy
 
 wait:
 	@echo "${ORANGE}Waiting for ${DELAY_SECONDS} seconds for the machines to start${NOCOLOR}"
@@ -60,6 +62,18 @@ ansible-exec:
 	ansible-playbook ansible/nginx.yml
 	ansible-playbook -i ansible/.tmp/inventory.ini ansible/playbook.yml --extra-vars="container_count=${containers}"
 	
-ansible-finish:
+ansible-destroy:
 	@echo "${RED}Deleting ansible file.${NOCOLOR}"
 	@rm -rf ansible/.tmp
+
+start:
+	@echo "${ORANGE}Starting nexus instance${NOCOLOR}"
+	@aws ec2 start-instances --instance-ids $(instance_ids)
+	@aws ec2 wait instance-running --instance-ids $(instance_ids)
+	@echo "${GREEN}Started nexus instance${NOCOLOR}"
+
+stop:
+	@echo "${ORANGE}Stopping nexus instance${NOCOLOR}"
+	@aws ec2 stop-instances --instance-ids $(instance_ids)
+	@aws ec2 wait instance-stopped --instance-ids $(instance_ids)
+	@echo "${RED}Stopped nexus instance${NOCOLOR}"
