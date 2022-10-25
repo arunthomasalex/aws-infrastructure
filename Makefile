@@ -11,7 +11,7 @@ NOCOLOR=\033[0m
 instances=1
 containers=1 
 
--instance_ids=$(shell cd terraform && terraform output --json instance-ids | sed -r 's/(,|\[|\])/ /g')
+instance_ids=$(shell cd terraform && terraform output --json instance-ids | sed -r 's/(,|\[|\])/ /g')
 
 edit: terraform-init terraform wait ansible
 
