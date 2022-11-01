@@ -108,7 +108,7 @@
       service_facts:
 
     - name: Configure aws_monitor service
-      when: ansible_facts.services["aws_monitor.service"] is not defined
+      when: ansible_facts.services["aws-monitor.service"].status != "enabled"
       block:
         - name: Create .aws folder for credentials
           file:
