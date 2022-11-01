@@ -1,0 +1,11 @@
+[Unit]
+Description=Aws ec2 instance monitor and shutdown
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/aws-monitor -s 5000 -l /var/log/aws-monitor/monitor.log -t 1.0
+TimeoutStartSec=0
+
+[Install]
+WantedBy=default.target

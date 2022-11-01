@@ -53,10 +53,10 @@ ansible-init:
 	@echo "${ORANGE}Creating ansible file for environment.${NOCOLOR}"
 	@mkdir ansible/.tmp
 	@cp config/ansible.ini ansible/.tmp/inventory.ini
-	@echo "[default]" > ansible/.tmp/credentials
-	@cat .env >> ansible/.tmp/credentials
-	@cp lib/aws_monitor* ansible/.tmp/
-	@cd terraform && terraform output --json application-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/.tmp/inventory.ini
+	@cp config/aws-monitor.service ansible/.tmp/
+	@echo "[default]" > ansible/.tmp/credentials && cat .env >> ansible/.tmp/credentials
+	@cp lib/* ansible/.tmp/
+	@cd terraform && terraform refresh && terraform output --json application-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/.tmp/inventory.ini
 	@cd terraform && terraform output --json application-details > ../ansible/.tmp/instances.tmp
 	@cd terraform && terraform output --json application-count > ../ansible/.tmp/count.tmp
 
@@ -70,15 +70,19 @@ ansible-destroy:
 	@rm -rf ansible/.tmp
 
 start:
-	@echo "${ORANGE}Starting nexus instance${NOCOLOR}"
+	@echo "${ORANGE}Starting aws instance${NOCOLOR}"
 	@aws ec2 start-instances --instance-ids $(instance_ids)
 	@aws ec2 wait instance-running --instance-ids $(instance_ids)
 	@echo Instance IP
 	@aws ec2 describe-instances --instance-ids $(instance_id) --query=Reservations[].Instances[].PublicIpAddress --region ap-south-1
-	@echo "${GREEN}Started nexus instance${NOCOLOR}"
+	@echo "${GREEN}Started aws instance${NOCOLOR}"
 
 stop:
-	@echo "${ORANGE}Stopping nexus instance${NOCOLOR}"
+	@echo "${ORANGE}Stopping aws instance${NOCOLOR}"
 	@aws ec2 stop-instances --instance-ids $(instance_ids)
 	@aws ec2 wait instance-stopped --instance-ids $(instance_ids)
-	@echo "${RED}Stopped nexus instance${NOCOLOR}"
+	@echo "${RED}Stopped aws instance${NOCOLOR}"
+
+status:
+	@echo "${ORANGE}Aws instance status${NOCOLOR}"
+	@aws ec2 describe-instance-status --instance-ids $(instance_ids)

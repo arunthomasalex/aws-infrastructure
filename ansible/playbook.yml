@@ -18,23 +18,29 @@
     - name: Upgrade all packages on servers
       apt: upgrade=dist force_apt_get=yes
 
-    - name: Installing requires softwares
-      block:
-        - name: Install required system packages
-          apt:
-            pkg:
-              - apt-transport-https
-              - ca-certificates
-              - curl
-              - tree
-              - software-properties-common
-              - python3-pip
-              - virtualenv
-              - python3-setuptools
-              - nginx
-            state: latest
-            update_cache: true
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - tree
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+          - nginx
+        state: latest
+        update_cache: true
 
+    - name: Check If Docker Is Installed
+      command: docker --version
+      register: docker_valid
+      ignore_errors: yes
+
+    - name: Install Docker if not present
+      when: docker_valid.failed
+      block:
         - name: Add Docker GPG apt Key
           apt_key:
             url: https://download.docker.com/linux/ubuntu/gpg
@@ -55,21 +61,21 @@
           pip:
             name: docker
 
-    - name: Adding 'docker' user
-      user:
-        name: docker
-        comment: docker access only
-        group: docker
-        createhome: yes
-        home: /home/docker
+        - name: Adding 'docker' user
+          user:
+            name: docker
+            comment: docker access only
+            group: docker
+            createhome: yes
+            home: /home/docker
 
-    - name: Adding shared folder for application
-      file:
-        path: /docker/shared
-        state: directory
-        recurse: yes
-        owner: docker
-        group: docker
+        - name: Adding shared folder for application
+          file:
+            path: /docker/shared
+            state: directory
+            recurse: yes
+            owner: docker
+            group: docker
 
     - name: Pull app docker image
       docker_image:
@@ -97,8 +103,12 @@
       notify:
         - restart nginx
         - start application containers
-    
-    - name: Configure aws-monitor for shutting down ec2 instance if not in use.
+
+    - name: Retrieve service facts
+      service_facts:
+
+    - name: Configure aws_monitor service
+      when: ansible_facts.services["aws_monitor.service"] is not defined
       block:
         - name: Create .aws folder for credentials
           file:
@@ -121,8 +131,26 @@
             name: aws-monitor
             extra_args: "--find-links=/tmp"
 
+        - name: Create aws-monitor service log folder
+          file: 
+            path: /var/log/aws-monitor
+            state: directory
+            recurse: yes
+
+        - name: Copy aws-monitor service file to host
+          copy:
+            src: .tmp/aws-monitor.service
+            dest: /etc/systemd/system/
+
+        - name: Enable aws-monitor service
+          service:
+            name: aws-monitor.service
+            enabled: yes
+
         - name: Start aws-monitor service
-          shell: "aws-monitor -s 5000 -l monitor.log -t 1.0 &"
+          service:
+            name: aws-monitor.service
+            state: started
 
   handlers:
     - name: restart nginx
