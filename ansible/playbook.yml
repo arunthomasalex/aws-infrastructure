@@ -122,7 +122,7 @@
             extra_args: "--find-links=/tmp"
 
         - name: Start aws-monitor service
-          shell: "aws-monitor -s 5000 -l monitor.log -t 0.033 &"
+          shell: "aws-monitor -s 5000 -l monitor.log -t 1 &"
 
   handlers:
     - name: restart nginx
