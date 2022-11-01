@@ -53,6 +53,9 @@ ansible-init:
 	@echo "${ORANGE}Creating ansible file for environment.${NOCOLOR}"
 	@mkdir ansible/.tmp
 	@cp config/ansible.ini ansible/.tmp/inventory.ini
+	@echo "[default]" > ansible/.tmp/credentials
+	@cat .env >> ansible/.tmp/credentials
+	@cp lib/aws_monitor* ansible/.tmp/
 	@cd terraform && terraform output --json application-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/.tmp/inventory.ini
 	@cd terraform && terraform output --json application-details > ../ansible/.tmp/instances.tmp
 	@cd terraform && terraform output --json application-count > ../ansible/.tmp/count.tmp
@@ -70,6 +73,8 @@ start:
 	@echo "${ORANGE}Starting nexus instance${NOCOLOR}"
 	@aws ec2 start-instances --instance-ids $(instance_ids)
 	@aws ec2 wait instance-running --instance-ids $(instance_ids)
+	@echo Instance IP
+	@aws ec2 describe-instances --instance-ids $(instance_id) --query=Reservations[].Instances[].PublicIpAddress --region ap-south-1
 	@echo "${GREEN}Started nexus instance${NOCOLOR}"
 
 stop:

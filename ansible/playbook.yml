@@ -4,8 +4,6 @@
   become_user: root
   vars:
     container_count: 1
-    # nginx_container_name: nginx
-    # nginx_container_image: nginx
     app_container_name: webapp
     app_container_image: training/webapp
   tasks:
@@ -20,40 +18,42 @@
     - name: Upgrade all packages on servers
       apt: upgrade=dist force_apt_get=yes
 
-    - name: Install required system packages
-      apt:
-        pkg:
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - tree
-          - software-properties-common
-          - python3-pip
-          - virtualenv
-          - python3-setuptools
-          - nginx
-        state: latest
-        update_cache: true
+    - name: Installing requires softwares
+      block:
+        - name: Install required system packages
+          apt:
+            pkg:
+              - apt-transport-https
+              - ca-certificates
+              - curl
+              - tree
+              - software-properties-common
+              - python3-pip
+              - virtualenv
+              - python3-setuptools
+              - nginx
+            state: latest
+            update_cache: true
 
-    - name: Add Docker GPG apt Key
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
+        - name: Add Docker GPG apt Key
+          apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
 
-    - name: Add Docker Repository
-      apt_repository:
-        repo: deb https://download.docker.com/linux/ubuntu focal stable
-        state: present
+        - name: Add Docker Repository
+          apt_repository:
+            repo: deb https://download.docker.com/linux/ubuntu focal stable
+            state: present
 
-    - name: Update apt and install docker-ce
-      apt:
-        name: docker-ce
-        state: latest
-        update_cache: true
+        - name: Update apt and install docker-ce
+          apt:
+            name: docker-ce
+            state: latest
+            update_cache: true
 
-    - name: Install Docker Module for Python
-      pip:
-        name: docker
+        - name: Install Docker Module for Python
+          pip:
+            name: docker
 
     - name: Adding 'docker' user
       user:
@@ -70,31 +70,6 @@
         recurse: yes
         owner: docker
         group: docker
-
-    # - name: Adding shared folder for nginx
-    #   file:
-    #     path: /docker/nginx
-    #     state: directory
-    #     recurse: yes
-    #     owner: docker
-    #     group: docker
-
-    # - name: Pull nginx docker image
-    #   docker_image:
-    #     name: "{{ nginx_container_image }}"
-    #     source: pull
-
-    # - name: Create nginx containers
-    #   docker_container:
-    #     name: "{{ nginx_container_name }}"
-    #     image: "{{ nginx_container_image }}"
-    #     state: started
-    #     ports:
-    #       - 80:80
-    #     volumes:
-    #       - /docker/nginx:/docker/nginx
-    #   notify:
-    #     - Copying nginx conf
 
     - name: Pull app docker image
       docker_image:
@@ -122,6 +97,32 @@
       notify:
         - restart nginx
         - start application containers
+    
+    - name: Configure aws-monitor for shutting down ec2 instance if not in use.
+      block:
+        - name: Create .aws folder for credentials
+          file:
+            path: ~/.aws
+            state: directory
+            recurse: yes
+
+        - name: Copy credential for monitor service
+          copy:
+            src: ".tmp/credentials"
+            dest: ~/.aws
+
+        - name: Copy aws-monitor library to host machine
+          copy:
+            src: ".tmp/*.whl"
+            dest: /tmp
+      
+        - name: Insatll aws-monitor
+          pip:
+            name: aws-monitor
+            extra_args: "--find-links=/tmp"
+
+        - name: Start aws-monitor service
+          shell: "aws-monitor -s 5000 -l monitor.log -t 0.033 &"
 
   handlers:
     - name: restart nginx
@@ -133,7 +134,8 @@
       docker_container:
         name: "{{ app_container_name }}{{ item }}"
         image: "{{ app_container_image }}"
-        state: started  
+        state: started
+        restart_policy: always
         ports:
           - 500{{ item }}:5000
         volumes:
