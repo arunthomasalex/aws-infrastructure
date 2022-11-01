@@ -113,7 +113,7 @@
 
         - name: Copy aws-monitor library to host machine
           copy:
-            src: ".tmp/*.whl"
+            src: ".tmp/aws_monitor-1.0.0-py3-none-any.whl"
             dest: /tmp
       
         - name: Insatll aws-monitor
