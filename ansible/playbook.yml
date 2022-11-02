@@ -77,11 +77,6 @@
             owner: docker
             group: docker
 
-    - name: Pull app docker image
-      docker_image:
-        name: "{{ app_container_image }}"
-        source: pull
-
     - name: Check if a reboot is needed on all servers
       register: reboot_required_file
       stat: path=/var/run/reboot-required get_md5=no
@@ -96,19 +91,11 @@
         test_command: uptime
       when: reboot_required_file.stat.exists
 
-    - name: Copying nginx conf
-      copy:
-        src: ".tmp/{{ lookup('dig', ansible_host) }}.conf"
-        dest: /etc/nginx/sites-enabled/default
-      notify:
-        - restart nginx
-        - start application containers
-
     - name: Retrieve service facts
       service_facts:
 
     - name: Configure aws_monitor service
-      when: ansible_facts.services["aws-monitor.service"].status != "enabled"
+      when: ansible_facts.services["aws-monitor.service"] is not defined
       block:
         - name: Create .aws folder for credentials
           file:
@@ -152,13 +139,39 @@
             name: aws-monitor.service
             state: started
 
+    - name: Remove existing container
+      docker_container:
+        name: "{{ app_container_name }}{{ item }}"
+        state: absent
+      with_sequence: count={{ container_count }} 
+
+    - name: Remove existing docker image
+      docker_image:
+        name: "{{ app_container_image }}"
+        state: absent
+
+    - name: Copying nginx conf
+      copy:
+        src: ".tmp/{{ lookup('dig', ansible_host) }}.conf"
+        dest: /etc/nginx/sites-enabled/default
+      notify:
+        - restart nginx
+
+    - name: Pull app docker image
+      docker_image:
+        name: "{{ app_container_image }}"
+        source: pull
+      notify:
+        - start containers
+        - restart nginx
+
   handlers:
     - name: restart nginx
       service: 
         name: nginx
         state: restarted
     
-    - name: start application containers
+    - name: start containers
       docker_container:
         name: "{{ app_container_name }}{{ item }}"
         image: "{{ app_container_image }}"
