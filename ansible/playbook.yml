@@ -150,19 +150,19 @@
         name: "{{ app_container_image }}"
         state: absent
 
-    - name: Copying nginx conf
-      copy:
-        src: ".tmp/{{ lookup('dig', ansible_host) }}.conf"
-        dest: /etc/nginx/sites-enabled/default
-      notify:
-        - restart nginx
-
     - name: Pull app docker image
       docker_image:
         name: "{{ app_container_image }}"
         source: pull
       notify:
         - start containers
+        - restart nginx
+
+    - name: Copying nginx conf
+      copy:
+        src: ".tmp/{{ lookup('dig', ansible_host) }}.conf"
+        dest: /etc/nginx/sites-enabled/default
+      notify:
         - restart nginx
 
   handlers:
